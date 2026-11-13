@@ -9,7 +9,7 @@
     <title>麻雀詳細アナリティクス＆雀魂昇段アシスタント</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html { line-height: 1.5; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+        html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
             background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fff7ed 100%);
@@ -36,8 +36,13 @@
         .fa-trash-can::before { content: "🗑"; }
         .fa-clipboard-list::before { content: "📋"; }
         h1, h2, h3, p { margin: 0; }
-        button, input, select, textarea { font-family: inherit; font-size: 16px; color: inherit; touch-action: manipulation; }
-        button { cursor: pointer; background-color: transparent; border: 0; }
+        button, input, select, textarea { font-family: inherit; font-size: 16px; color: inherit; }
+        button { cursor: pointer; background-color: transparent; border: 0; touch-action: manipulation; }
+        input, select, textarea {
+            -webkit-user-select: text;
+            user-select: text;
+            pointer-events: auto;
+        }
         select, input[type="text"], input[type="number"], input[type="date"], textarea {
             -webkit-appearance: none;
             appearance: none;
@@ -405,7 +410,7 @@
                 <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     <div>
                         <label class="block text-[11px] font-bold text-amber-900 mb-1">現在段位</label>
-                        <select id="simCurrentRank" onchange="const d=majsoulRankData[this.value]; if(d) document.getElementById('simCurrentPt').value=d.init; updateMajsoulSimulation();" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-extrabold text-amber-950">
+                        <select id="simCurrentRank" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-extrabold text-amber-950">
                             <option value="初心1">初心★1</option>
                             <option value="初心2">初心★2</option>
                             <option value="初心3">初心★3</option>
@@ -425,11 +430,11 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-amber-900 mb-1">現在ポイント</label>
-                        <input type="number" id="simCurrentPt" value="600" oninput="updateMajsoulSimulation()" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-white text-xs font-extrabold text-amber-950">
+                        <input type="number" id="simCurrentPt" inputmode="numeric" value="600" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-white text-xs font-extrabold text-amber-950">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-amber-900 mb-1">対戦卓</label>
-                        <select id="simRoomType" onchange="updateMajsoulSimulation()" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-extrabold text-amber-950">
+                        <select id="simRoomType" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-extrabold text-amber-950">
                             <option value="silver">銀の間</option>
                             <option value="gold" selected>金の間</option>
                             <option value="jade">玉の間</option>
@@ -438,7 +443,7 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-amber-900 mb-1">対局形式</label>
-                        <select id="simGameLength" onchange="updateMajsoulSimulation()" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-extrabold text-amber-950">
+                        <select id="simGameLength" class="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-extrabold text-amber-950">
                             <option value="south" selected>半荘戦</option>
                             <option value="east">東風戦</option>
                         </select>
@@ -1493,9 +1498,35 @@
 
         // 初期化処理 (Safari・外部WebViewでも確実に発火させる)
         let isAppInitialized = false;
+        function bindAllAppEvents() {
+            const simRank = document.getElementById('simCurrentRank');
+            const simPt = document.getElementById('simCurrentPt');
+            const simRoom = document.getElementById('simRoomType');
+            const simLen = document.getElementById('simGameLength');
+
+            if (simRank) {
+                simRank.addEventListener('change', function() {
+                    const d = majsoulRankData[this.value];
+                    if (d && simPt) simPt.value = d.init;
+                    updateMajsoulSimulation();
+                });
+            }
+            if (simPt) {
+                simPt.addEventListener('input', updateMajsoulSimulation);
+                simPt.addEventListener('change', updateMajsoulSimulation);
+            }
+            if (simRoom) {
+                simRoom.addEventListener('change', updateMajsoulSimulation);
+            }
+            if (simLen) {
+                simLen.addEventListener('change', updateMajsoulSimulation);
+            }
+        }
+
         function initApp() {
             if (isAppInitialized) return;
             isAppInitialized = true;
+            try { bindAllAppEvents(); } catch (e) { console.error(e); }
             try { updateMajsoulSimulation(); } catch (e) { console.error(e); }
             try { renderRankHistory(); } catch (e) { console.error(e); }
             try { refreshUI(); } catch (e) { console.error(e); }
