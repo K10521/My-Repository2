@@ -35,7 +35,13 @@
         .fa-clipboard-list::before { content: "📋"; }
         h1, h2, h3, p { margin: 0; }
         button, input, select, textarea { font-family: inherit; font-size: 16px; color: inherit; }
-        button { cursor: pointer; background-color: transparent; border: 0; }
+        button { cursor: pointer; background-color: transparent; border: 0; touch-action: manipulation; }
+        select, input, textarea {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            pointer-events: auto !important;
+            touch-action: manipulation;
+        }
         select, input[type="text"], input[type="number"], input[type="date"], textarea {
             -webkit-appearance: none;
             appearance: none;
@@ -1189,8 +1195,6 @@
         }
 
         function renderBalanceChart() {
-            const canvas = document.getElementById('balanceChart');
-            const svgBox = document.getElementById('fallbackSvgChart');
             const list = getFilteredRecords().slice().reverse();
 
             const labels = list.map((r, i) => `#${i + 1} (${(r.date || '').slice(5)})`);
@@ -1530,6 +1534,12 @@
                     saveSimulatorSettings();
                     updateMajsoulSimulation();
                 });
+                simRank.addEventListener('input', function() {
+                    const d = majsoulRankData[this.value];
+                    if (d && simPt) simPt.value = d.init;
+                    saveSimulatorSettings();
+                    updateMajsoulSimulation();
+                });
             }
             if (simPt) {
                 simPt.addEventListener('input', function() {
@@ -1537,6 +1547,10 @@
                     updateMajsoulSimulation();
                 });
                 simPt.addEventListener('change', function() {
+                    saveSimulatorSettings();
+                    updateMajsoulSimulation();
+                });
+                simPt.addEventListener('keyup', function() {
                     saveSimulatorSettings();
                     updateMajsoulSimulation();
                 });
@@ -1553,6 +1567,15 @@
                     updateMajsoulSimulation();
                 });
             }
+
+            // iOSスタンドアロンWebViewで入力欄タップ時に確実にフォーカスさせる補助
+            document.querySelectorAll('input, select, textarea').forEach(el => {
+                el.addEventListener('touchend', function(e) {
+                    if (document.activeElement !== this) {
+                        this.focus();
+                    }
+                }, { passive: true });
+            });
         }
 
         function initApp() {
