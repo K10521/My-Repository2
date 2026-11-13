@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="麻雀分析">
     <title>麻雀詳細アナリティクス＆雀魂昇段アシスタント</title>
     <style>
@@ -37,12 +35,7 @@
         .fa-clipboard-list::before { content: "📋"; }
         h1, h2, h3, p { margin: 0; }
         button, input, select, textarea { font-family: inherit; font-size: 16px; color: inherit; }
-        button { cursor: pointer; background-color: transparent; border: 0; touch-action: manipulation; }
-        input, select, textarea {
-            -webkit-user-select: text;
-            user-select: text;
-            pointer-events: auto;
-        }
+        button { cursor: pointer; background-color: transparent; border: 0; }
         select, input[type="text"], input[type="number"], input[type="date"], textarea {
             -webkit-appearance: none;
             appearance: none;
@@ -259,7 +252,7 @@
         .shadow-sm { box-shadow: 0 1px 3px 0 rgba(120, 53, 15, 0.1), 0 1px 2px -1px rgba(120, 53, 15, 0.06); }
         .shadow-md { box-shadow: 0 4px 6px -1px rgba(120, 53, 15, 0.12), 0 2px 4px -2px rgba(120, 53, 15, 0.08); }
         .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.28); }
-        .backdrop-blur-xs { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+        .backdrop-blur-xs { background-color: rgba(255, 255, 255, 0.96); }
 
         /* Overflow & Interaction */
         .overflow-hidden { overflow: hidden; }
@@ -368,7 +361,7 @@
                 </div>
 
                 <!-- 記録追加ボタン -->
-                <button onclick="openRecordModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 transition">
+                <button id="btnOpenRecordModal" type="button" onclick="openRecordModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-plus"></i> 対局を記録
                 </button>
             </div>
@@ -565,7 +558,7 @@
                 <h2 class="text-lg font-extrabold text-amber-950 flex items-center gap-2">
                     <i class="fa-solid fa-pen-to-square text-amber-600"></i> 対局結果の記録
                 </h2>
-                <button onclick="closeRecordModal()" class="text-stone-400 hover:text-stone-600 p-2 rounded-xl hover:bg-amber-100/50 transition">
+                <button id="btnCloseRecordModal" type="button" onclick="closeRecordModal()" class="text-stone-400 hover:text-stone-600 p-2 rounded-xl hover:bg-amber-100/50 transition">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -1498,6 +1491,32 @@
 
         // 初期化処理 (Safari・外部WebViewでも確実に発火させる)
         let isAppInitialized = false;
+        function loadSimulatorSettings() {
+            const saved = loadJsonStorage('mj_analytics_sim_settings', null);
+            if (!saved) return;
+            const simRank = document.getElementById('simCurrentRank');
+            const simPt = document.getElementById('simCurrentPt');
+            const simRoom = document.getElementById('simRoomType');
+            const simLen = document.getElementById('simGameLength');
+            if (simRank && saved.rank) simRank.value = saved.rank;
+            if (simPt && saved.pt !== undefined) simPt.value = saved.pt;
+            if (simRoom && saved.room) simRoom.value = saved.room;
+            if (simLen && saved.len) simLen.value = saved.len;
+        }
+
+        function saveSimulatorSettings() {
+            const simRank = document.getElementById('simCurrentRank');
+            const simPt = document.getElementById('simCurrentPt');
+            const simRoom = document.getElementById('simRoomType');
+            const simLen = document.getElementById('simGameLength');
+            safeStorage.setItem('mj_analytics_sim_settings', JSON.stringify({
+                rank: simRank ? simRank.value : '雀傑1',
+                pt: simPt ? simPt.value : '600',
+                room: simRoom ? simRoom.value : 'gold',
+                len: simLen ? simLen.value : 'south'
+            }));
+        }
+
         function bindAllAppEvents() {
             const simRank = document.getElementById('simCurrentRank');
             const simPt = document.getElementById('simCurrentPt');
@@ -1508,24 +1527,38 @@
                 simRank.addEventListener('change', function() {
                     const d = majsoulRankData[this.value];
                     if (d && simPt) simPt.value = d.init;
+                    saveSimulatorSettings();
                     updateMajsoulSimulation();
                 });
             }
             if (simPt) {
-                simPt.addEventListener('input', updateMajsoulSimulation);
-                simPt.addEventListener('change', updateMajsoulSimulation);
+                simPt.addEventListener('input', function() {
+                    saveSimulatorSettings();
+                    updateMajsoulSimulation();
+                });
+                simPt.addEventListener('change', function() {
+                    saveSimulatorSettings();
+                    updateMajsoulSimulation();
+                });
             }
             if (simRoom) {
-                simRoom.addEventListener('change', updateMajsoulSimulation);
+                simRoom.addEventListener('change', function() {
+                    saveSimulatorSettings();
+                    updateMajsoulSimulation();
+                });
             }
             if (simLen) {
-                simLen.addEventListener('change', updateMajsoulSimulation);
+                simLen.addEventListener('change', function() {
+                    saveSimulatorSettings();
+                    updateMajsoulSimulation();
+                });
             }
         }
 
         function initApp() {
             if (isAppInitialized) return;
             isAppInitialized = true;
+            try { loadSimulatorSettings(); } catch (e) { console.error(e); }
             try { bindAllAppEvents(); } catch (e) { console.error(e); }
             try { updateMajsoulSimulation(); } catch (e) { console.error(e); }
             try { renderRankHistory(); } catch (e) { console.error(e); }
