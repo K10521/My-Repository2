@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻雀詳細アナリティクス & 収支・昇段アシスタント</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #fefce8; /* 目に優しいウォームイエロー/アンバー系 */
+            color: #451a03;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fef3c7;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d97706;
+        }
+        .modal-scroll {
+            overscroll-behavior: contain;
+        }
+        @keyframes marquee-scroll {
+            0%, 15% { transform: translateX(0); }
+            85%, 100% { transform: translateX(var(--marquee-offset, 0px)); }
+        }
+        .animate-marquee-text {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee-scroll 7s ease-in-out infinite alternate;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    <!-- ヘッダー -->
+    <header class="bg-amber-500 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid font-bold text-2xl">🀄</i>
+                <h1 class="text-xl font-black tracking-wide">麻雀成績詳細アナリティクス</h1>
+            </div>
+
+            <!-- モード切り替えコントロール -->
+            <div class="flex items-center gap-2 flex-wrap text-xs font-bold">
+                <!-- プラットフォーム切替 -->
+                <div class="bg-amber-600/40 p-1 rounded-xl flex">
+                    <button id="platformMajsoul" onclick="setPlatformMode('majsoul')" class="px-3 py-1 rounded-lg bg-white text-amber-900 shadow-xs transition">雀魂</button>
+                    <button id="platformReal" onclick="setPlatformMode('real')" class="px-3 py-1 rounded-lg text-white hover:bg-amber-600/50 transition">リアル麻雀</button>
+                </div>
+
+                <!-- 四麻/三麻切替 -->
+                <div class="bg-amber-600/40 p-1 rounded-xl flex">
+                    <button id="modeSanma4" onclick="setMahjongMode(4)" class="px-3 py-1 rounded-lg bg-white text-amber-900 shadow-xs transition">四人麻雀</button>
+                    <button id="modeSanma3" onclick="setMahjongMode(3)" class="px-3 py-1 rounded-lg text-white hover:bg-amber-600/50 transition">三人麻雀</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
+
+        <!-- AI戦術＆メンタルコーチ -->
+        <div id="aiAdvisorBox" class="transition-all duration-300">
+            <!-- JavaScriptで描画 -->
+        </div>
+
+        <!-- 雀魂昇段シミュレーター or リアル麻雀設定 -->
+        <section id="majsoulSimContainer" class="bg-white/80 backdrop-blur-sm border border-amber-200 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-500"></i> 雀魂（Mahjong Soul）昇段アシスタント
+                </h2>
+                <button onclick="openRankHistoryModal()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-3 py-1.5 rounded-xl transition">
+                    + 段位変動を記録
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-amber-800 block">現在の段位</label>
+                    <select id="majsoulRank" onchange="updateMajsoulSimulation()" class="w-full p-2 text-xs bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="初心1">初心1</option>
+                        <option value="初心2">初心2</option>
+                        <option value="初心3">初心3</option>
+                        <option value="雀士1">雀士1</option>
+                        <option value="雀士2">雀士2</option>
+                        <option value="雀士3">雀士3</option>
+                        <option value="雀傑1" selected>雀傑1</option>
+                        <option value="雀傑2">雀傑2</option>
+                        <option value="雀傑3">雀傑3</option>
+                        <option value="雀豪1">雀豪1</option>
+                        <option value="雀豪2">雀豪2</option>
+                        <option value="雀豪3">雀豪3</option>
+                        <option value="雀聖1">雀聖1</option>
+                        <option value="雀聖2">雀聖2</option>
+                        <option value="雀聖3">雀聖3</option>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-amber-800 block">対局卓のレベル</label>
+                    <select id="majsoulRoom" onchange="updateMajsoulSimulation()" class="w-full p-2 text-xs bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="copper">銅の間</option>
+                        <option value="silver">銀の間</option>
+                        <option value="gold" selected>金の間</option>
+                        <option value="jade">玉の間</option>
+                        <option value="throne">王座の間</option>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-amber-800 block">対局形式</label>
+                    <select id="majsoulGameLength" onchange="updateMajsoulSimulation()" class="w-full p-2 text-xs bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="hanchan" selected>半荘戦</option>
+                        <option value="tonpuu">東風戦</option>
+                    </select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-amber-800 block">現在の所持ポイント (pt)</label>
+                    <input type="number" id="currentPoints" value="600" step="10" oninput="updateMajsoulSimulation()" onkeyup="updateMajsoulSimulation()" class="w-full p-2 text-xs bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-3 rounded-xl shadow-xs flex flex-col justify-center">
+                    <div class="text-[11px] font-medium opacity-90">昇段目標</div>
+                    <div class="flex items-baseline justify-between mt-0.5">
+                        <span class="text-[11px]">目標: <span id="targetScore">1200pt</span></span>
+                        <span id="remainPoints" class="text-lg font-black">あと 600 pt</span>
+                    </div>
+                    <div id="majsoulAdviceWrapper" class="text-[10px] mt-1 font-medium bg-amber-700/40 p-1 rounded-lg overflow-hidden whitespace-nowrap">
+                        <span id="majsoulAdviceText" class="inline-block">計算中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 次局の昇段条件詳細パネル -->
+            <div id="majsoulConditionDetails" class="mt-4 pt-3 border-t border-amber-200/80">
+                <div class="text-xs font-bold text-amber-900 mb-2 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-flag-checkered text-amber-500"></i>
+                        次局での一発昇段 / 着順別ボーダー条件
+                    </span>
+                    <span id="majsoulUmaNotice" class="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">ウマ(+15/+5/-5/-15) 反映済み</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                    <div class="bg-amber-100/80 border border-amber-200 p-2.5 rounded-xl font-bold flex flex-col justify-between">
+                        <div class="text-amber-800 text-[11px] flex items-center justify-between">
+                            <span>🥇 1着 (トップ) 昇段</span>
+                            <span id="topWinBasePt" class="text-[10px] text-amber-600">段位点: +0pt</span>
+                        </div>
+                        <div id="condTopRequired" class="text-amber-900 font-black mt-1 text-sm">計算中...</div>
+                    </div>
+                    <div class="bg-amber-100/80 border border-amber-200 p-2.5 rounded-xl font-bold flex flex-col justify-between">
+                        <div class="text-amber-800 text-[11px] flex items-center justify-between">
+                            <span>🥈 2着 昇段</span>
+                            <span id="secondWinBasePt" class="text-[10px] text-amber-600">段位点: +0pt</span>
+                        </div>
+                        <div id="condSecondRequired" class="text-amber-900 font-black mt-1 text-sm">計算中...</div>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 p-2.5 rounded-xl font-bold flex flex-col justify-between">
+                        <div class="text-rose-800 text-[11px] flex items-center justify-between">
+                            <span>⚠️ 4位(ラス) 減点ペナルティ</span>
+                            <span class="text-[10px] text-rose-500">公式準拠</span>
+                        </div>
+                        <div id="condLastPenalty" class="text-rose-600 font-black mt-1 text-sm">計算中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 段位履歴表示 -->
+            <div class="mt-4 pt-3 border-t border-amber-100">
+                <div class="text-xs font-bold text-amber-800 mb-2">段位変動ログ</div>
+                <div id="rankHistoryList" class="space-y-1"></div>
+            </div>
+        </section>
+
+        <!-- リアル麻雀ルール設定 -->
+        <section id="realSettingContainer" class="hidden bg-white/80 border border-amber-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-amber-500"></i> リアル麻雀 ルール・計算設定
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div>
+                    <label class="font-bold text-amber-800">持ち点 / 返し点</label>
+                    <select id="realStartPoint" onchange="updateRealScorePreview()" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900">
+                        <option value="25000-30000">25,000点持ち / 30,000点返し (オカ20pt)</option>
+                        <option value="30000-30000">30,000点持ち / 30,000点返し (オカなし)</option>
+                        <option value="35000-40000">35,000点持ち / 40,000点返し (三麻標準)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-bold text-amber-800">順位ウマ (pt)</label>
+                    <select id="realUma" onchange="updateRealScorePreview()" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900">
+                        <option value="10-20">ワンツー (10pt - 20pt)</option>
+                        <option value="10-30">ワンスリー (10pt - 30pt)</option>
+                        <option value="20-30">ツーフォー (20pt - 30pt)</option>
+                        <option value="0-0">ウマなし</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-bold text-amber-800">チップ換算 rate</label>
+                    <input type="number" id="realChipRate" value="5" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900" placeholder="1枚あたりpt">
+                </div>
+                <div>
+                    <label class="font-bold text-amber-800">計算レート</label>
+                    <select id="realMoneyRate" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl font-bold text-amber-900">
+                        <option value="100">テンピン (1pt = 100円)</option>
+                        <option value="50">テンゴ (1pt = 50円)</option>
+                        <option value="500">リャンピン (1pt = 500円)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- 集計期間フィルター ＆ 対局追加ボタン -->
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-1 bg-amber-100/60 p-1.5 rounded-2xl overflow-x-auto max-w-full">
+                <button id="btnFilterAll" onclick="setPeriodFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-white transition whitespace-nowrap">全期間</button>
+                <button id="btnFilterYear" onclick="setPeriodFilter('year')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-200 transition whitespace-nowrap">今年</button>
+                <button id="btnFilterMonth" onclick="setPeriodFilter('month')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-200 transition whitespace-nowrap">今月</button>
+                <button id="btnFilterWeek" onclick="setPeriodFilter('week')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-200 transition whitespace-nowrap">今週</button>
+                <button id="btnFilterToday" onclick="setPeriodFilter('today')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-200 transition whitespace-nowrap">今日</button>
+            </div>
+
+            <button onclick="openRecordModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                <i class="fa-solid fa-camera"></i> 対局結果・写真メモを記録
+            </button>
+        </div>
+
+        <!-- KPI ダッシュボード カード群 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">通算収支 (pt)</div>
+                <div id="statTotalPt" class="text-xl font-black text-amber-600 mt-1">-</div>
+            </div>
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">平均順位</div>
+                <div id="statAvgRank" class="text-xl font-black text-amber-900 mt-1">-</div>
+            </div>
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">トップ率 / ラス率</div>
+                <div class="flex items-baseline gap-2 mt-1">
+                    <span id="statTopRate" class="text-base font-black text-amber-600">-</span>
+                    <span class="text-xs text-amber-400">/</span>
+                    <span id="statLastRate" class="text-base font-black text-rose-500">-</span>
+                </div>
+            </div>
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">総対局数</div>
+                <div id="statTotalGames" class="text-xl font-black text-amber-900 mt-1">0 試合</div>
+            </div>
+
+            <!-- 詳細スタッツ -->
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">放銃率 (局単位)</div>
+                <div id="statHoujuuRate" class="text-lg font-black text-amber-800 mt-1">-</div>
+            </div>
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">平均放銃打点</div>
+                <div id="statAvgHoujuuScore" class="text-lg font-black text-amber-800 mt-1">-</div>
+            </div>
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">リーチ和了率</div>
+                <div id="statReachWinRate" class="text-lg font-black text-amber-800 mt-1">-</div>
+            </div>
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 shadow-xs">
+                <div class="text-[11px] font-bold text-amber-700">平均配牌ドラ / 裏ドラ</div>
+                <div class="flex items-baseline gap-2 mt-1">
+                    <span id="statDoraAvg" class="text-base font-black text-amber-800">-</span>
+                    <span class="text-xs text-amber-400">/</span>
+                    <span id="statUraDoraAvg" class="text-base font-black text-amber-800">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- グラフセクション -->
+        <section class="bg-white/80 p-5 rounded-2xl border border-amber-200 shadow-xs">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h3 class="text-sm font-bold text-amber-900 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-amber-500"></i> スコア＆着順推移グラフ
+                </h3>
+                <!-- グラフ表示切替ボタン -->
+                <div class="bg-amber-100/70 p-1 rounded-xl flex text-xs font-bold">
+                    <button id="btnChartBalance" onclick="setChartType('balance')" class="px-3 py-1 rounded-lg bg-amber-500 text-white shadow-xs transition">累計収支 (pt)</button>
+                    <button id="btnChartRank" onclick="setChartType('rank')" class="px-3 py-1 rounded-lg text-amber-800 hover:bg-amber-200 transition">着順推移</button>
+                </div>
+            </div>
+            <div class="relative w-full h-64">
+                <canvas id="balanceChart"></canvas>
+            </div>
+        </section>
+
+        <!-- 対局記録データ一覧テーブル -->
+        <section class="bg-white/80 rounded-2xl border border-amber-200 shadow-xs p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-amber-900">対局履歴</h3>
+                <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">← 横スワイプ可能 →</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[700px] text-left border-collapse">
+                    <thead>
+                        <tr class="bg-amber-100/70 text-amber-900 text-xs font-bold border-b border-amber-200">
+                            <th class="p-2.5">日付</th>
+                            <th class="p-2.5">着順</th>
+                    <th class="p-2.5">スコア (pt)</th>
+                    <th class="p-2.5">持ち点</th>
+                    <th class="p-2.5">終了局・本場</th>
+                    <th class="p-2.5">写真メモ</th>
+                    <th class="p-2.5">メモ</th>
+                    <th class="p-2.5 text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <!-- JSで描画 -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 対局入力モーダル -->
+    <div id="recordModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg max-h-[85vh] rounded-2xl shadow-2xl overflow-y-auto modal-scroll p-6 space-y-4 relative border border-amber-200">
+            <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                <h3 class="text-base font-bold text-amber-900">🀄 対局結果を記録</h3>
+                <button onclick="closeRecordModal()" class="text-amber-500 hover:text-amber-700 font-bold text-lg">✕</button>
+            </div>
+
+            <form onsubmit="saveRecord(event)" class="space-y-4 text-xs font-bold">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-amber-800 block mb-1">対局日付</label>
+                        <input type="date" id="inputDate" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-amber-800 block mb-1">最終着順</label>
+                        <select id="inputRank" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                            <!-- JSで生成 -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-amber-800 block mb-1">最終持ち点 (点)</label>
+                        <input type="number" id="inputScoreRaw" value="25000" step="100" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-amber-800 block mb-1">スコア (pt)</label>
+                        <input type="number" id="inputScorePt" value="0" step="0.1" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-amber-800 block mb-1">対局終了局</label>
+                        <div class="grid grid-cols-2 gap-1">
+                            <select id="inputRoundKyoku" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl text-xs">
+                                <option value="東1局">東1局</option>
+                                <option value="東2局">東2局</option>
+                                <option value="東3局">東3局</option>
+                                <option value="東4局">東4局</option>
+                                <option value="南1局">南1局</option>
+                                <option value="南2局">南2局</option>
+                                <option value="南3局">南3局</option>
+                                <option value="南4局" selected>南4局</option>
+                                <option value="西1局">西1局</option>
+                                <option value="西2局">西2局</option>
+                                <option value="西3局">西3局</option>
+                                <option value="西4局">西4局</option>
+                            </select>
+                            <select id="inputHonba" onchange="generateDoraInputs()" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl text-xs">
+                                <option value="0">0本場</option>
+                                <option value="1">1本場</option>
+                                <option value="2">2本場</option>
+                                <option value="3">3本場</option>
+                                <option value="4">4本場</option>
+                                <option value="5">5本場</option>
+                                <option value="6">6本場</option>
+                                <option value="7">7本場</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-3">
+                    <div class="text-amber-900 font-bold border-b border-amber-200 pb-1">放銃・リーチ詳細</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-amber-800 text-[10px]">総局数</label>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <button type="button" onclick="adjustTotalRounds(-1)" class="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded font-black text-xs transition">ー</button>
+                                <input type="number" id="inputTotalRounds" value="10" min="1" max="30" class="w-full text-center p-1 bg-white border border-amber-300 rounded-lg text-xs" onchange="generateDoraInputs()">
+                                <button type="button" onclick="adjustTotalRounds(1)" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded font-black text-xs transition">＋</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-amber-800 text-[10px]">放銃回数</label>
+                            <input type="number" id="inputHoujuuCount" value="0" min="0" class="w-full p-1.5 bg-white border border-amber-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="text-amber-800 text-[10px]">平均放銃打点</label>
+                            <input type="number" id="inputHoujuuAvgScore" value="0" step="100" class="w-full p-1.5 bg-white border border-amber-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-amber-800 text-[10px]">リーチ回数</label>
+                            <input type="number" id="inputReachCount" value="0" min="0" class="w-full p-1.5 bg-white border border-amber-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="text-amber-800 text-[10px]">リーチ和了数</label>
+                            <input type="number" id="inputReachWinCount" value="0" min="0" class="w-full p-1.5 bg-white border border-amber-300 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 局別配牌ドラ入力 -->
+                <div class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2">
+                    <div class="flex items-center justify-between border-b border-amber-200 pb-1 flex-wrap gap-1">
+                        <span class="text-amber-900 font-bold">局別 配牌ドラ枚数＆本場設定</span>
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-amber-300">
+                                <button type="button" onclick="adjustTotalRounds(-1)" class="px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded font-black text-xs transition">ー 局</button>
+                                <button type="button" onclick="adjustTotalRounds(1)" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-black text-xs transition">＋ 局</button>
+                            </div>
+                            <span id="calculatedDoraAvg" class="text-amber-700 font-bold text-xs">0.00 枚</span>
+                        </div>
+                    </div>
+                    <div id="doraInputsContainer" class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div id="realChipInputBox">
+                        <label class="text-amber-800 block mb-1">獲得チップ枚数 (枚)</label>
+                        <input type="number" id="inputChipCount" value="0" step="1" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-amber-800 block mb-1">裏ドラ獲得枚数</label>
+                        <input type="number" id="inputUraDoraCount" value="0" min="0" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-amber-800 block mb-1">勝負局・手牌の写真メモ (リアル麻雀等)</label>
+                    <input type="file" id="inputPhoto" accept="image/*" class="w-full text-xs text-amber-900 bg-amber-50 border border-amber-300 rounded-xl p-1.5 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-white hover:file:bg-amber-600">
+                </div>
+
+                <div>
+                    <label class="text-amber-800 block mb-1">メモ・反省点</label>
+                    <textarea id="inputMemo" rows="2" placeholder="リーチ判断や気になった局などを記録..." class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl"></textarea>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeRecordModal()" class="w-1/2 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold transition">キャンセル</button>
+                    <button type="submit" class="w-1/2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-md transition">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 段位記録モーダル -->
+    <div id="rankHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 space-y-4 border border-amber-200">
+            <div class="flex items-center justify-between border-b border-amber-100 pb-2">
+                <h3 class="text-sm font-bold text-amber-900">段位変動を記録</h3>
+                <button onclick="closeRankHistoryModal()" class="text-amber-500 font-bold text-lg">✕</button>
+            </div>
+            <form onsubmit="saveRankHistory(event)" class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="text-amber-800 block mb-1">日付</label>
+                    <input type="date" id="inputRankDate" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                </div>
+                <div>
+                    <label class="text-amber-800 block mb-1">到達段位</label>
+                    <select id="inputRankName" class="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl">
+                        <option value="初心1">初心1</option>
+                        <option value="初心2">初心2</option>
+                        <option value="初心3">初心3</option>
+                        <option value="雀士1">雀士1</option>
+                        <option value="雀士2">雀士2</option>
+                        <option value="雀士3">雀士3</option>
+                        <option value="雀傑1">雀傑1</option>
+                        <option value="雀傑2">雀傑2</option>
+                        <option value="雀傑3">雀傑3</option>
+                        <option value="雀豪1">雀豪1</option>
+                        <option value="雀豪2">雀豪2</option>
+                        <option value="雀豪3">雀豪3</option>
+                        <option value="雀圣1">雀聖1</option>
+                        <option value="雀聖2">雀聖2</option>
+                        <option value="雀聖3">雀聖3</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeRankHistoryModal()" class="w-1/2 py-2 bg-gray-200 text-gray-800 rounded-xl">キャンセル</button>
+                    <button type="submit" class="w-1/2 py-2 bg-amber-500 text-white rounded-xl shadow-xs">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 写真拡大モーダル -->
+    <div id="imagePreviewModal" class="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 hidden items-center justify-center p-4" onclick="closeImagePreview()">
+        <div class="max-w-3xl max-h-[90vh] p-2">
+            <img id="previewImageTarget" src="" class="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl">
+        </div>
+    </div>
+
+    <!-- 対局詳細モーダル -->
+    <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4" onclick="if(event.target === this) closeDetailModal()">
+        <div class="bg-white w-full max-w-lg max-h-[85vh] rounded-2xl shadow-2xl overflow-y-auto modal-scroll p-6 space-y-4 relative border border-amber-200">
+            <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                <h3 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines text-amber-500"></i> 対局詳細レポート
+                </h3>
+                <button onclick="closeDetailModal()" class="text-amber-500 hover:text-amber-700 font-bold text-lg">✕</button>
+            </div>
+            <div id="detailModalContent" class="space-y-4 text-xs font-bold">
+                <!-- JSで動的描画 -->
+            </div>
+            <div class="pt-2">
+                <button type="button" onclick="closeDetailModal()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-xs transition">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- アプリ全体ステート ---
+        let platformMode = 'majsoul'; // 'majsoul' or 'real'
+        let mahjongMode = 4; // 4: 四人麻雀, 3: 三人麻雀
+        let periodFilter = 'all'; // 'all', 'year', 'month', 'week', 'today'
+        let chartType = 'balance'; // 'balance' or 'rank'
+        let balanceChart = null;
+
+        // 初期サンプルデータ
+        let records = JSON.parse(localStorage.getItem('mj_analytics_records')) || [
+            { id: 1, platform: 'majsoul', mode: 4, date: '2026-11-10', rank: 1, rawScore: 36200, scorePt: 46.2, roundKyoku: '南4局', honba: 1, rounds: 10, houjuu: 1, houjuuAvg: 3900, reach: 3, reachWin: 2, uraDora: 1, chips: 0, doras: [1,0,2,0,1,0,0,1,0,2], doraAvg: 0.7, photo: '', memo: 'オーラスアガリトップ' },
+            { id: 2, platform: 'majsoul', mode: 4, date: '2026-11-11', rank: 3, rawScore: 19800, scorePt: -20.2, roundKyoku: '南4局', honba: 0, rounds: 11, houjuu: 2, houjuuAvg: 7700, reach: 2, reachWin: 0, uraDora: 0, chips: 0, doras: [0,1,0,0,0,1,0,0,0,1,0], doraAvg: 0.27, photo: '', memo: '勝負手実らず放銃重なる' }
+        ];
+
+        let rankHistory = JSON.parse(localStorage.getItem('mj_analytics_rank_history')) || [
+            { id: 1, mode: 4, date: '2026-10-01', rank: '雀傑1' }
+        ];
+
+        // 雀魂目標昇段pt & 配給原点 & 4位減点 (スクリーンショット公式完全準拠)
+        const majsoulRankData = {
+            4: {
+                '初心1': { target: 20, base: 0, penaltyTonpuu: 0, penaltyHanchan: 0 },
+                '初心2': { target: 80, base: 0, penaltyTonpuu: 0, penaltyHanchan: 0 },
+                '初心3': { target: 200, base: 0, penaltyTonpuu: 0, penaltyHanchan: 0 },
+                '雀士1': { target: 600, base: 300, penaltyTonpuu: -10, penaltyHanchan: -20 },
+                '雀士2': { target: 800, base: 400, penaltyTonpuu: -20, penaltyHanchan: -40 },
+                '雀士3': { target: 1000, base: 500, penaltyTonpuu: -30, penaltyHanchan: -60 },
+                '雀傑1': { target: 1200, base: 600, penaltyTonpuu: -40, penaltyHanchan: -80 },
+                '雀傑2': { target: 1400, base: 700, penaltyTonpuu: -50, penaltyHanchan: -100 },
+                '雀傑3': { target: 2000, base: 1000, penaltyTonpuu: -60, penaltyHanchan: -120 },
+                '雀豪1': { target: 2800, base: 1400, penaltyTonpuu: -80, penaltyHanchan: -165 },
+                '雀豪2': { target: 3200, base: 1600, penaltyTonpuu: -90, penaltyHanchan: -180 },
+                '雀豪3': { target: 3600, base: 1800, penaltyTonpuu: -100, penaltyHanchan: -195 },
+                '雀聖1': { target: 4000, base: 2000, penaltyTonpuu: -110, penaltyHanchan: -210 },
+                '雀聖2': { target: 6000, base: 3000, penaltyTonpuu: -120, penaltyHanchan: -225 },
+                '雀聖3': { target: 9000, base: 4500, penaltyTonpuu: -130, penaltyHanchan: -240 }
+            },
+            3: {
+                '初心1': { target: 20, base: 0, penaltyTonpuu: 0, penaltyHanchan: 0 },
+                '初心2': { target: 80, base: 0, penaltyTonpuu: 0, penaltyHanchan: 0 },
+                '初心3': { target: 200, base: 0, penaltyTonpuu: 0, penaltyHanchan: 0 },
+                '雀士1': { target: 600, base: 300, penaltyTonpuu: -15, penaltyHanchan: -30 },
+                '雀士2': { target: 800, base: 400, penaltyTonpuu: -30, penaltyHanchan: -60 },
+                '雀士3': { target: 1000, base: 500, penaltyTonpuu: -45, penaltyHanchan: -90 },
+                '雀傑1': { target: 1400, base: 700, penaltyTonpuu: -60, penaltyHanchan: -120 },
+                '雀傑2': { target: 1600, base: 800, penaltyTonpuu: -75, penaltyHanchan: -150 },
+                '雀傑3': { target: 2400, base: 1200, penaltyTonpuu: -90, penaltyHanchan: -180 },
+                '雀豪1': { target: 3400, base: 1700, penaltyTonpuu: -120, penaltyHanchan: -240 },
+                '雀豪2': { target: 3800, base: 1900, penaltyTonpuu: -135, penaltyHanchan: -270 },
+                '雀豪3': { target: 4200, base: 2100, penaltyTonpuu: -150, penaltyHanchan: -300 },
+                '雀聖1': { target: 5000, base: 2500, penaltyTonpuu: -165, penaltyHanchan: -330 },
+                '雀聖2': { target: 7000, base: 3500, penaltyTonpuu: -180, penaltyHanchan: -360 },
+                '雀聖3': { target: 10000, base: 5000, penaltyTonpuu: -195, penaltyHanchan: -390 }
+            }
+        };
+
+        // 雀魂 卓×対局形式 (東風 / 半荘) 公式配給段位点数テーブル
+        const roomPointTable = {
+            4: {
+                copper: { tonpuu: { top: 10, second: 5, third: 0 }, hanchan: { top: 20, second: 10, third: 0 } },
+                silver: { tonpuu: { top: 20, second: 10, third: 0 }, hanchan: { top: 40, second: 20, third: 0 } },
+                gold:   { tonpuu: { top: 40, second: 20, third: 0 }, hanchan: { top: 80, second: 40, third: 0 } },
+                jade:   { tonpuu: { top: 55, second: 30, third: 0 }, hanchan: { top: 110, second: 55, third: 0 } },
+                throne: { tonpuu: { top: 60, second: 30, third: 0 }, hanchan: { top: 120, second: 60, third: 0 } }
+            },
+            3: {
+                copper: { tonpuu: { top: 15, second: 0, third: 0 }, hanchan: { top: 30, second: 0, third: 0 } },
+                silver: { tonpuu: { top: 30, second: 0, third: 0 }, hanchan: { top: 60, second: 0, third: 0 } },
+                gold:   { tonpuu: { top: 55, second: 0, third: 0 }, hanchan: { top: 105, second: 0, third: 0 } },
+                jade:   { tonpuu: { top: 75, second: 0, third: 0 }, hanchan: { top: 160, second: 0, third: 0 } },
+                throne: { tonpuu: { top: 120, second: 0, third: 0 }, hanchan: { top: 240, second: 0, third: 0 } }
+            }
+        };
+
+        // --- 雀魂昇段シミュレーター ---
+        function updateMajsoulSimulation() {
+            const rank = document.getElementById('majsoulRank').value;
+            const room = document.getElementById('majsoulRoom').value;
+            const length = document.getElementById('majsoulGameLength').value; // 'tonpuu' or 'hanchan'
+            const currentPts = parseFloat(document.getElementById('currentPoints').value || 0);
+
+            const rankConfig = (majsoulRankData[mahjongMode] && majsoulRankData[mahjongMode][rank]) || { target: 1200, base: 600, penaltyTonpuu: -40, penaltyHanchan: -80 };
+            const targetPts = rankConfig.target;
+            const remain = targetPts - currentPts;
+
+            document.getElementById('targetScore').textContent = `${targetPts}pt`;
+            const remainEl = document.getElementById('remainPoints');
+
+            if (remain <= 0) {
+                remainEl.textContent = '昇段条件達成！';
+                remainEl.className = 'text-lg font-black text-amber-200 animate-pulse';
+            } else {
+                remainEl.textContent = `あと ${remain} pt`;
+                remainEl.className = 'text-lg font-black';
+            }
+
+            const roomData = (roomPointTable[mahjongMode] && roomPointTable[mahjongMode][room] && roomPointTable[mahjongMode][room][length]) 
+                || { top: 80, second: 40, third: 0 };
+            
+            const topPt = roomData.top;
+            const secondPt = roomData.second;
+            const lastPenalty = length === 'tonpuu' ? rankConfig.penaltyTonpuu : rankConfig.penaltyHanchan;
+
+            document.getElementById('topWinBasePt').textContent = `段位点: +${topPt}pt`;
+            document.getElementById('secondWinBasePt').textContent = `段位点: +${secondPt}pt`;
+
+            // ウマ(+15pt/1000点換算 = +15,000点相当) および 素点オカ(持ち点25,000 / 返し点30,000) を考慮した着順別持ち点計算
+            // 雀魂スコア(pt) = 段位点 + (最終持ち点 - 30000)/1000 + 順位ウマ(1位:+15, 2位:+5, 3位:-5, 4位:-15)
+            // よって 1位獲得時全加算pt = topPt + 15 + (持ち点 - 30000)/1000
+            if (remain <= 0) {
+                document.getElementById('condTopRequired').textContent = '達成済み';
+                document.getElementById('condSecondRequired').textContent = '達成済み';
+            } else {
+                // 1位で remain を満たすための必要最終持ち点
+                // (持ち点 - 30000)/1000 >= remain - topPt - 15
+                const reqScoreForTop = 30000 + (remain - topPt - 15) * 1000;
+                
+                // 2位で remain を満たすための必要最終持ち点
+                // (持ち点 - 30000)/1000 >= remain - secondPt - 5
+                const reqScoreForSecond = 30000 + (remain - secondPt - 5) * 1000;
+
+                document.getElementById('condTopRequired').textContent = reqScoreForTop <= 0 
+                    ? 'どんなトップでも即昇段！' 
+                    : `持ち点 ${Math.ceil(reqScoreForTop).toLocaleString()} 点以上のトップ`;
+
+                if (mahjongMode === 3) {
+                    document.getElementById('condSecondRequired').textContent = '3麻は2着段位点なし';
+                } else {
+                    document.getElementById('condSecondRequired').textContent = reqScoreForSecond <= 0 
+                        ? 'どんな2着でも即昇段！' 
+                        : `持ち点 ${Math.ceil(reqScoreForSecond).toLocaleString()} 点以上の2着`;
+                }
+            }
+
+            document.getElementById('condLastPenalty').textContent = `${lastPenalty} pt`;
+
+            const topWinsNeeded = Math.ceil(Math.max(0, remain) / (topPt + 15)); // 原点(30,000点)トップ想定
+            const adviceEl = document.getElementById('majsoulAdviceText');
+            const adviceWrapper = document.getElementById('majsoulAdviceWrapper');
+            adviceEl.textContent = remain > 0 
+                ? `${getRoomName(room)}(${length === 'tonpuu' ? '東風' : '半荘'})でのトップ想定なら約 ${topWinsNeeded} 回で昇段！`
+                : '昇段おめでとうございます！次の段位へ進みましょう。';
+
+            // テキストが枠からはみ出す場合のみ横スクロールアニメーションを適用
+            adviceEl.classList.remove('animate-marquee-text');
+            adviceEl.style.removeProperty('--marquee-offset');
+            requestAnimationFrame(() => {
+                if (adviceWrapper && adviceEl.scrollWidth > adviceWrapper.clientWidth) {
+                    const overflow = adviceWrapper.clientWidth - adviceEl.scrollWidth - 4;
+                    adviceEl.style.setProperty('--marquee-offset', `${overflow}px`);
+                    adviceEl.classList.add('animate-marquee-text');
+                }
+            });
+        }
+
+        function getRoomName(code) {
+            const names = { copper: '銅の間', silver: '銀の間', gold: '金の間', jade: '玉の間', throne: '王座の間' };
+            return names[code] || '対局卓';
+        }
+
+        function updateRealScorePreview() {
+            // リアル麻雀のスコアプレビュー等
+        }
+
+        // --- KPI表示レンダリング ---
+        function renderKPIs() {
+            const list = getFilteredRecords();
+
+            if (list.length === 0) {
+                document.getElementById('statTotalPt').textContent = '0 pt';
+                document.getElementById('statAvgRank').textContent = '-';
+                document.getElementById('statTopRate').textContent = '-';
+                document.getElementById('statLastRate').textContent = '-';
+                document.getElementById('statTotalGames').textContent = '0 試合';
+                document.getElementById('statHoujuuRate').textContent = '-';
+                document.getElementById('statAvgHoujuuScore').textContent = '-';
+                document.getElementById('statReachWinRate').textContent = '-';
+                document.getElementById('statDoraAvg').textContent = '-';
+                document.getElementById('statUraDoraAvg').textContent = '-';
+                return;
+            }
+
+            let totalPt = 0;
+            let totalRank = 0;
+            let topCount = 0;
+            let lastCount = 0;
+            let totalRoundsSum = 0;
+            let houjuuCountSum = 0;
+            let houjuuScoreSum = 0;
+            let reachCountSum = 0;
+            let reachWinSum = 0;
+            let doraAvgSum = 0;
+            let uraDoraSum = 0;
+
+            list.forEach(r => {
+                totalPt += parseFloat(r.scorePt || 0);
+                totalRank += parseInt(r.rank || 0);
+                if (parseInt(r.rank) === 1) topCount++;
+                if (parseInt(r.rank) === mahjongMode) lastCount++;
+
+                totalRoundsSum += parseInt(r.rounds || 10);
+                houjuuCountSum += parseInt(r.houjuu || 0);
+                houjuuScoreSum += (parseInt(r.houjuu || 0) * parseFloat(r.houjuuAvg || 0));
+                reachCountSum += parseInt(r.reach || 0);
+                reachWinSum += parseInt(r.reachWin || 0);
+                doraAvgSum += parseFloat(r.doraAvg || 0);
+                uraDoraSum += parseInt(r.uraDora || 0);
+            });
+
+            const count = list.length;
+            const avgRank = (totalRank / count).toFixed(2);
+            const topRate = ((topCount / count) * 100).toFixed(1);
+            const lastRate = ((lastCount / count) * 100).toFixed(1);
+
+            document.getElementById('statTotalPt').textContent = `${totalPt >= 0 ? '+' : ''}${totalPt.toFixed(1)} pt`;
+            document.getElementById('statTotalPt').className = `text-xl font-black ${totalPt >= 0 ? 'text-amber-600' : 'text-rose-600'} mt-1`;
+            document.getElementById('statAvgRank').textContent = `${avgRank} 位`;
+            document.getElementById('statTopRate').textContent = `${topRate}%`;
+            document.getElementById('statLastRate').textContent = `${lastRate}%`;
+            document.getElementById('statTotalGames').textContent = `${count} 試合`;
+
+            const houjuuRate = totalRoundsSum > 0 ? ((houjuuCountSum / totalRoundsSum) * 100).toFixed(1) : '0.0';
+            const avgHoujuuPoint = houjuuCountSum > 0 ? Math.round(houjuuScoreSum / houjuuCountSum) : 0;
+            const reachWinRate = reachCountSum > 0 ? ((reachWinSum / reachCountSum) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('statHoujuuRate').textContent = `${houjuuRate}%`;
+            document.getElementById('statAvgHoujuuScore').textContent = `${avgHoujuuPoint.toLocaleString()} 点`;
+            document.getElementById('statReachWinRate').textContent = `${reachWinRate}%`;
+            document.getElementById('statDoraAvg').textContent = (doraAvgSum / count).toFixed(2);
+            document.getElementById('statUraDoraAvg').textContent = (uraDoraSum / count).toFixed(2);
+        }
+
+        // --- グラフ描画 ---
+        function renderBalanceChart() {
+            const ctx = document.getElementById('balanceChart').getContext('2d');
+            const list = getFilteredRecords().slice().reverse();
+
+            if (balanceChart) {
+                balanceChart.destroy();
+            }
+
+            const labels = list.map((r, i) => `#${i+1} (${r.date.slice(5)})`);
+
+            if (chartType === 'balance') {
+                let currentCum = 0;
+                const cumData = list.map(r => {
+                    currentCum += parseFloat(r.scorePt || 0);
+                    return parseFloat(currentCum.toFixed(1));
+                });
+
+                balanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '累計収支 (pt)',
+                            data: cumData,
+                            borderColor: '#d97706',
+                            backgroundColor: '#d97706',
+                            fill: false,
+                            tension: 0.1,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#d97706',
+                            pointBorderWidth: 2.5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: 'rgba(217, 119, 6, 0.12)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            } else {
+                const rankData = list.map(r => parseInt(r.rank));
+                balanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '着順',
+                            data: rankData,
+                            borderColor: '#b45309',
+                            backgroundColor: '#b45309',
+                            fill: false,
+                            tension: 0.1,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#b45309',
+                            pointBorderWidth: 2.5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                reverse: true,
+                                min: 1,
+                                max: mahjongMode,
+                                ticks: { stepSize: 1, callback: v => `${v}位` },
+                                grid: { color: 'rgba(217, 119, 6, 0.1)' }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- テーブル描画 ---
+        function renderTable() {
+            const tbody = document.getElementById('recordsTableBody');
+            const list = getFilteredRecords();
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-amber-700/60 font-bold text-xs">データが登録されていません</td></tr>`;
+                return;
+            }
+
+            list.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-amber-100 hover:bg-amber-100/60 transition text-xs font-bold cursor-pointer';
+                tr.onclick = () => openDetailModal(r.id);
+
+                const ptVal = parseFloat(r.scorePt || 0);
+                const ptClass = ptVal >= 0 ? 'text-amber-700' : 'text-rose-600';
+                const rankBadgeClass = r.rank === 1 ? 'bg-amber-500 text-white' : (r.rank === mahjongMode ? 'bg-rose-500 text-white' : 'bg-amber-200 text-amber-900');
+
+                tr.innerHTML = `
+                    <td class="p-2.5 text-amber-900">${r.date}</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-md text-[11px] ${rankBadgeClass}">${r.rank}着</span></td>
+                    <td class="p-2.5 ${ptClass} font-black">${ptVal >= 0 ? '+' : ''}${ptVal.toFixed(1)}</td>
+                    <td class="p-2.5 text-amber-800">${(r.rawScore || 0).toLocaleString()}点</td>
+                    <td class="p-2.5 text-amber-800">${r.roundKyoku || '南4局'} ${r.honba || 0}本場</td>
+                    <td class="p-2.5">
+                        ${r.photo ? `<img src="${r.photo}" onclick="event.stopPropagation(); openImagePreview('${r.photo}')" class="w-8 h-8 object-cover rounded-lg border border-amber-300 cursor-pointer hover:opacity-80">` : '<span class="text-gray-400 text-[10px]">なし</span>'}
+                    </td>
+                    <td class="p-2.5 text-amber-800 max-w-[150px] truncate" title="${r.memo || ''}">${r.memo || '-'}</td>
+                    <td class="p-2.5 text-right">
+                        <button onclick="event.stopPropagation(); deleteRecord(${r.id})" class="text-rose-500 hover:text-rose-700 px-2 py-1 rounded transition">削除</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- AI戦術アドバイザー ---
+        function updateAdvisor() {
+            const list = getFilteredRecords();
+            const box = document.getElementById('aiAdvisorBox');
+            if (list.length === 0) {
+                box.innerHTML = '';
+                return;
+            }
+
+            let totalRank = 0;
+            let totalRounds = 0;
+            let houjuuCount = 0;
+            list.forEach(r => {
+                totalRank += parseInt(r.rank);
+                totalRounds += parseInt(r.rounds || 10);
+                houjuuCount += parseInt(r.houjuu || 0);
+            });
+            const avgRank = totalRank / list.length;
+            const houjuuRate = totalRounds > 0 ? (houjuuCount / totalRounds) * 100 : 0;
+
+            let message = '';
+            if (avgRank <= 2.1 && houjuuRate < 13) {
+                message = '🀄 素晴らしいパフォーマンスです！攻守のバランスが非常によく取れています。';
+            } else if (houjuuRate >= 15) {
+                message = '⚠️ 放銃率がやや高めです。先制リーチを受けた際の押し引きやベタオリの精度を再確認してみましょう。';
+            } else if (avgRank > 2.5) {
+                message = '📈 トップ率を高めるため、配牌時のドラ意識と立ち上がりでのアガリ速度を意識してみましょう！';
+            } else {
+                message = '👍 安定した対局スタイルを維持できています。この調子で対局を重ねていきましょう！';
+            }
+
+            box.innerHTML = `
+                <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-4 rounded-2xl shadow-xs flex items-center gap-3">
+                    <i class="fa-solid fa-robot text-2xl"></i>
+                    <div class="text-xs font-bold leading-relaxed">${message}</div>
+                </div>
+            `;
+        }
+
+        // --- フィルター・切り替え・共通処理 ---
+        function setPlatformMode(mode) {
+            platformMode = mode;
+            document.getElementById('platformMajsoul').className = mode === 'majsoul' ? 'px-3 py-1 rounded-lg bg-white text-amber-900 shadow-xs transition' : 'px-3 py-1 rounded-lg text-white hover:bg-amber-600/50 transition';
+            document.getElementById('platformReal').className = mode === 'real' ? 'px-3 py-1 rounded-lg bg-white text-amber-900 shadow-xs transition' : 'px-3 py-1 rounded-lg text-white hover:bg-amber-600/50 transition';
+            
+            document.getElementById('majsoulSimContainer').style.display = mode === 'majsoul' ? 'block' : 'none';
+            document.getElementById('realSettingContainer').style.display = mode === 'real' ? 'block' : 'none';
+            document.getElementById('realChipInputBox').style.display = mode === 'real' ? 'block' : 'none';
+            refreshUI();
+        }
+
+        function setMahjongMode(mode) {
+            mahjongMode = mode;
+            document.getElementById('modeSanma4').className = mode === 4 ? 'px-3 py-1 rounded-lg bg-white text-amber-900 shadow-xs transition' : 'px-3 py-1 rounded-lg text-white hover:bg-amber-600/50 transition';
+            document.getElementById('modeSanma3').className = mode === 3 ? 'px-3 py-1 rounded-lg bg-white text-amber-900 shadow-xs transition' : 'px-3 py-1 rounded-lg text-white hover:bg-amber-600/50 transition';
+            updateMajsoulSimulation();
+            renderRankHistory();
+            refreshUI();
+        }
+
+        function setPeriodFilter(filter) {
+            periodFilter = filter;
+            ['all', 'year', 'month', 'week', 'today'].forEach(f => {
+                const btn = document.getElementById(`btnFilter${f.charAt(0).toUpperCase() + f.slice(1)}`);
+                if (btn) {
+                    btn.className = f === filter 
+                        ? 'px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-white transition whitespace-nowrap'
+                        : 'px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-200 transition whitespace-nowrap';
+                }
+            });
+            refreshUI();
+        }
+
+        function setChartType(type) {
+            chartType = type;
+            document.getElementById('btnChartBalance').className = type === 'balance' ? 'px-3 py-1 rounded-lg bg-amber-500 text-white shadow-xs transition' : 'px-3 py-1 rounded-lg text-amber-800 hover:bg-amber-200 transition';
+            document.getElementById('btnChartRank').className = type === 'rank' ? 'px-3 py-1 rounded-lg bg-amber-500 text-white shadow-xs transition' : 'px-3 py-1 rounded-lg text-amber-800 hover:bg-amber-200 transition';
+            renderBalanceChart();
+        }
+
+        function getFilteredRecords() {
+            const now = new Date();
+            return records.filter(r => {
+                if (r.platform !== platformMode || r.mode !== mahjongMode) return false;
+                if (periodFilter === 'all') return true;
+
+                const rDate = new Date(r.date);
+                if (periodFilter === 'today') {
+                    return rDate.toDateString() === now.toDateString();
+                }
+                if (periodFilter === 'week') {
+                    const oneWeekAgo = new Date();
+                    oneWeekAgo.setDate(now.getDate() - 7);
+                    return rDate >= oneWeekAgo;
+                }
+                if (periodFilter === 'month') {
+                    return rDate.getMonth() === now.getMonth() && rDate.getFullYear() === now.getFullYear();
+                }
+                if (periodFilter === 'year') {
+                    return rDate.getFullYear() === now.getFullYear();
+                }
+                return true;
+            });
+        }
+
+        function updateRankSelectOptions() {
+            const select = document.getElementById('inputRank');
+            select.innerHTML = '';
+            for (let i = 1; i <= mahjongMode; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${i}着`;
+                select.appendChild(opt);
+            }
+        }
+
+        function adjustTotalRounds(delta) {
+            const input = document.getElementById('inputTotalRounds');
+            let val = parseInt(input.value || 10) + delta;
+            if (val < 1) val = 1;
+            if (val > 30) val = 30;
+            input.value = val;
+            generateDoraInputs();
+        }
+
+        function getDefaultRoundName(idx) {
+            const names = ['東1', '東2', '東3', '東4', '南1', '南2', '南3', '南4', '西1', '西2', '西3', '西4', '北1', '北2', '北3', '北4'];
+            return names[idx] || `局${idx+1}`;
+        }
+
+        function generateDoraInputs() {
+            const totalRounds = parseInt(document.getElementById('inputTotalRounds').value || 10);
+            const container = document.getElementById('doraInputsContainer');
+            const mainHonba = document.getElementById('inputHonba').value;
+
+            // 既存の入力値（局名、本場、ドラ）を一時保持
+            const existingItems = container.querySelectorAll('.dora-item');
+            const existingData = [];
+            existingItems.forEach(item => {
+                const nameInp = item.querySelector('.round-name-input');
+                const honbaSel = item.querySelector('.round-honba-select');
+                const doraInp = item.querySelector('.dora-val-input');
+                if (doraInp) {
+                    existingData.push({
+                        name: nameInp ? nameInp.value : '',
+                        honba: honbaSel ? honbaSel.value : '0',
+                        dora: doraInp.value || '0'
+                    });
+                }
+            });
+
+            container.innerHTML = '';
+            for (let i = 0; i < totalRounds; i++) {
+                const defaultName = getDefaultRoundName(i);
+                const prev = existingData[i] || {};
+                const nameVal = prev.name || defaultName;
+                const honbaVal = prev.honba !== undefined ? prev.honba : (i === totalRounds - 1 ? mainHonba : '0');
+                const doraVal = prev.dora || '0';
+
+                const div = document.createElement('div');
+                div.className = 'dora-item bg-white p-1.5 rounded-lg border border-amber-300 flex flex-col gap-1 shadow-2xs';
+                div.innerHTML = `
+                    <div class="flex items-center gap-1">
+                        <input type="text" value="${nameVal}" class="round-name-input w-full p-0.5 text-[10px] font-bold text-amber-900 border-b border-amber-200 text-center focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <select class="round-honba-select w-1/2 p-0.5 text-[9px] bg-amber-50 border border-amber-200 rounded font-bold text-amber-800">
+                            ${[0,1,2,3,4,5,6,7].map(h => `<option value="${h}" ${h == honbaVal ? 'selected' : ''}>${h}本</option>`).join('')}
+                        </select>
+                        <input type="number" min="0" max="20" value="${doraVal}" oninput="calculateDoraAvg()" class="dora-val-input w-1/2 text-center p-0.5 text-xs font-black text-amber-900 bg-amber-50 border border-amber-200 rounded">
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+            calculateDoraAvg();
+        }
+
+        function calculateDoraAvg() {
+            const inputs = document.querySelectorAll('#doraInputsContainer .dora-val-input');
+            if (inputs.length === 0) return 0;
+            let sum = 0;
+            inputs.forEach(inp => sum += parseInt(inp.value || 0));
+            const avg = (sum / inputs.length).toFixed(2);
+            const el = document.getElementById('calculatedDoraAvg');
+            if (el) el.textContent = `${avg} 枚`;
+            return parseFloat(avg);
+        }
+
+        function refreshUI() {
+            renderKPIs();
+            renderBalanceChart();
+            renderTable();
+            updateAdvisor();
+        }
+
+        // --- モーダル制御 ＆ レコード保存 ---
+        function openRecordModal() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inputDate').value = today;
+            updateRankSelectOptions();
+            generateDoraInputs();
+
+            document.getElementById('recordModal').classList.remove('hidden');
+            document.getElementById('recordModal').classList.add('flex');
+        }
+
+        function closeRecordModal() {
+            document.getElementById('recordModal').classList.add('hidden');
+            document.getElementById('recordModal').classList.remove('flex');
+        }
+
+        function saveRecord(e) {
+            e.preventDefault();
+            const photoInput = document.getElementById('inputPhoto');
+
+            const processSave = (photoData) => {
+                const totalRounds = parseInt(document.getElementById('inputTotalRounds').value || 10);
+                const doraItems = document.querySelectorAll('#doraInputsContainer .dora-item');
+                const doras = [];
+                const roundDetails = [];
+                doraItems.forEach((item, idx) => {
+                    const nameInp = item.querySelector('.round-name-input');
+                    const honbaSel = item.querySelector('.round-honba-select');
+                    const inp = item.querySelector('.dora-val-input');
+                    const doraVal = inp ? parseInt(inp.value || 0) : 0;
+                    doras.push(doraVal);
+                    roundDetails.push({
+                        name: nameInp ? nameInp.value : getDefaultRoundName(idx),
+                        honba: honbaSel ? parseInt(honbaSel.value || 0) : 0,
+                        dora: doraVal
+                    });
+                });
+
+                const doraAvgVal = calculateDoraAvg();
+
+                const newRec = {
+                    id: Date.now(),
+                    platform: platformMode,
+                    mode: mahjongMode,
+                    date: document.getElementById('inputDate').value,
+                    rank: parseInt(document.getElementById('inputRank').value),
+                    rawScore: parseInt(document.getElementById('inputScoreRaw').value || 0),
+                    scorePt: parseFloat(document.getElementById('inputScorePt').value || 0),
+                    roundKyoku: document.getElementById('inputRoundKyoku').value,
+                    honba: parseInt(document.getElementById('inputHonba').value || 0),
+                    rounds: totalRounds,
+                    houjuu: parseInt(document.getElementById('inputHoujuuCount').value || 0),
+                    houjuuAvg: parseInt(document.getElementById('inputHoujuuAvgScore').value || 0),
+                    reach: parseInt(document.getElementById('inputReachCount').value || 0),
+                    reachWin: parseInt(document.getElementById('inputReachWinCount').value || 0),
+                    uraDora: parseInt(document.getElementById('inputUraDoraCount').value || 0),
+                    chips: parseInt(document.getElementById('inputChipCount').value || 0),
+                    doras: doras,
+                    roundDetails: roundDetails,
+                    doraAvg: doraAvgVal,
+                    photo: photoData || '',
+                    memo: document.getElementById('inputMemo').value
+                };
+
+                records.unshift(newRec);
+                localStorage.setItem('mj_analytics_records', JSON.stringify(records));
+                closeRecordModal();
+                refreshUI();
+            };
+
+            if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    processSave(evt.target.result);
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                processSave('');
+            }
+        }
+
+        function deleteRecord(id) {
+            records = records.filter(r => r.id !== id);
+            localStorage.setItem('mj_analytics_records', JSON.stringify(records));
+            refreshUI();
+        }
+
+        // --- 段位履歴 ---
+        function openRankHistoryModal() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inputRankDate').value = today;
+            document.getElementById('rankHistoryModal').classList.remove('hidden');
+            document.getElementById('rankHistoryModal').classList.add('flex');
+        }
+
+        function closeRankHistoryModal() {
+            document.getElementById('rankHistoryModal').classList.add('hidden');
+            document.getElementById('rankHistoryModal').classList.remove('flex');
+        }
+
+        function saveRankHistory(e) {
+            e.preventDefault();
+            const newHistory = {
+                id: Date.now(),
+                mode: mahjongMode,
+                date: document.getElementById('inputRankDate').value,
+                rank: document.getElementById('inputRankName').value
+            };
+            rankHistory.unshift(newHistory);
+            localStorage.setItem('mj_analytics_rank_history', JSON.stringify(rankHistory));
+            closeRankHistoryModal();
+            renderRankHistory();
+        }
+
+        function deleteRankHistory(id) {
+            rankHistory = rankHistory.filter(h => h.id !== id);
+            localStorage.setItem('mj_analytics_rank_history', JSON.stringify(rankHistory));
+            renderRankHistory();
+        }
+
+        function renderRankHistory() {
+            const container = document.getElementById('rankHistoryList');
+            const list = rankHistory.filter(h => h.mode === mahjongMode);
+            container.innerHTML = '';
+            if (list.length === 0) {
+                container.innerHTML = '<span class="text-amber-700/60 text-xs">登録なし</span>';
+                return;
+            }
+            list.forEach(h => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200 text-xs font-bold text-amber-900';
+                div.innerHTML = `
+                    <span>📅 ${h.date} - <span class="text-amber-700">${h.rank}</span> 到達</span>
+                    <button onclick="deleteRankHistory(${h.id})" class="text-rose-500 hover:text-rose-700 ml-2">✕</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- 写真拡大表示 ---
+        function openImagePreview(src) {
+            document.getElementById('previewImageTarget').src = src;
+            document.getElementById('imagePreviewModal').classList.remove('hidden');
+            document.getElementById('imagePreviewModal').classList.add('flex');
+        }
+
+        function closeImagePreview() {
+            document.getElementById('imagePreviewModal').classList.add('hidden');
+            document.getElementById('imagePreviewModal').classList.remove('flex');
+        }
+
+        // --- 対局詳細モーダル制御 ---
+        function openDetailModal(id) {
+            const r = records.find(item => item.id === id);
+            if (!r) return;
+
+            const ptVal = parseFloat(r.scorePt || 0);
+            const ptClass = ptVal >= 0 ? 'text-amber-600' : 'text-rose-600';
+            const rankBadgeClass = r.rank === 1 ? 'bg-amber-500 text-white' : (r.rank === r.mode ? 'bg-rose-500 text-white' : 'bg-amber-200 text-amber-900');
+
+            const houjuuRate = r.rounds > 0 ? ((r.houjuu / r.rounds) * 100).toFixed(1) : '0.0';
+            const reachRate = r.reach > 0 ? ((r.reachWin / r.reach) * 100).toFixed(1) : '0.0';
+
+            // 局別配牌ドラ＆本場カード生成
+            const detailsList = r.roundDetails || (r.doras || []).map((d, idx) => ({
+                name: getDefaultRoundName(idx),
+                honba: idx === (r.doras.length - 1) ? (r.honba || 0) : 0,
+                dora: d
+            }));
+
+            const roundsHtml = detailsList.length > 0
+                ? `<div class="grid grid-cols-4 gap-1.5 mt-2">
+                    ${detailsList.map(d => `
+                        <div class="bg-white border border-amber-200 rounded-lg p-1.5 text-center shadow-2xs">
+                            <div class="text-[10px] text-amber-900 border-b border-amber-100 pb-0.5">${d.name} <span class="text-amber-600">${d.honba}本</span></div>
+                            <div class="text-xs font-black text-amber-700 mt-0.5">ドラ ${d.dora}枚</div>
+                        </div>
+                    `).join('')}
+                   </div>`
+                : '<div class="text-amber-700/60 text-[11px] mt-1">局別データなし</div>';
+
+            const content = document.getElementById('detailModalContent');
+            content.innerHTML = `
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <div class="text-[11px] text-amber-700">${r.date} / ${r.platform === 'majsoul' ? '雀魂' : 'リアル麻雀'} (${r.mode}麻)</div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="px-2.5 py-0.5 rounded-lg text-xs ${rankBadgeClass}">${r.rank}着</span>
+                            <span class="text-base font-black text-amber-900">${(r.rawScore || 0).toLocaleString()}点</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[11px] text-amber-700">収支スコア</div>
+                        <div class="text-xl font-black ${ptClass}">${ptVal >= 0 ? '+' : ''}${ptVal.toFixed(1)} pt</div>
+                        <div class="text-[10px] text-amber-800 mt-0.5">終了: ${r.roundKyoku || '南4局'} ${r.honba || 0}本場</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-2.5">
+                        <div class="text-[10px] text-amber-700">総局数 / 放銃</div>
+                        <div class="text-sm text-amber-900 mt-0.5">${r.rounds || 10}局中 ${r.houjuu || 0}回 (${houjuuRate}%)</div>
+                        <div class="text-[10px] text-amber-600 mt-0.5">平均放銃打点: ${(r.houjuuAvg || 0).toLocaleString()}点</div>
+                    </div>
+                    <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-2.5">
+                        <div class="text-[10px] text-amber-700">リーチ / 和了</div>
+                        <div class="text-sm text-amber-900 mt-0.5">${r.reach || 0}回中 ${r.reachWin || 0}和了 (${reachRate}%)</div>
+                        <div class="text-[10px] text-amber-600 mt-0.5">裏ドラ: ${r.uraDora || 0}枚 ${r.platform === 'real' ? `/ チップ: ${r.chips || 0}枚` : ''}</div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-amber-900">局別 配牌ドラ＆本場内訳</span>
+                        <span class="text-amber-700">平均 ${(r.doraAvg || 0).toFixed(2)} 枚</span>
+                    </div>
+                    ${roundsHtml}
+                </div>
+
+                <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-3 space-y-1">
+                    <div class="text-amber-900">メモ・反省点</div>
+                    <div class="text-amber-800 font-medium whitespace-pre-wrap leading-relaxed bg-white p-2.5 rounded-lg border border-amber-100">${r.memo ? r.memo : 'メモはありません'}</div>
+                </div>
+
+                ${r.photo ? `
+                <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-3 space-y-2">
+                    <div class="text-amber-900">添付写真メモ</div>
+                    <img src="${r.photo}" onclick="openImagePreview('${r.photo}')" class="w-full max-h-56 object-contain rounded-lg border border-amber-200 bg-white cursor-pointer hover:opacity-90">
+                </div>` : ''}
+            `;
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.getElementById('detailModal').classList.remove('flex');
+        }
+
+        // 初期化処理
+        window.onload = function() {
+            updateMajsoulSimulation();
+            renderRankHistory();
+            refreshUI();
+        };
+    </script>
+</body>
+</html>
