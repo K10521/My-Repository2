@@ -2,19 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="麻雀分析">
     <title>麻雀詳細アナリティクス＆雀魂昇段アシスタント</title>
-    <!-- FontAwesome & Chart.js & Google Fonts -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
+        *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html { line-height: 1.5; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
         body {
-            font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
             background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fff7ed 100%);
             color: #292524;
             min-height: 100vh;
@@ -22,8 +19,24 @@
             padding-bottom: env(safe-area-inset-bottom, 24px);
             -webkit-font-smoothing: antialiased;
         }
+        /* アイコンの完全内蔵フォールバック（外部フォント不要） */
+        .fa-solid { display: inline-flex; align-items: center; justify-content: center; font-style: normal; line-height: 1; }
+        .fa-dragon::before { content: "🀄"; font-size: 1.15em; }
+        .fa-crown::before { content: "👑"; font-size: 0.95em; }
+        .fa-coins::before { content: "🪙"; font-size: 0.95em; }
+        .fa-plus::before { content: "＋"; font-weight: 900; }
+        .fa-circle-info::before { content: "ⓘ"; font-weight: 700; }
+        .fa-trophy::before { content: "🏆"; }
+        .fa-flag-checkered::before { content: "🚩"; }
+        .fa-medal::before { content: "🎖️"; }
+        .fa-chart-line::before { content: "📈"; }
+        .fa-clock-rotate-left::before { content: "🕒"; }
+        .fa-pen-to-square::before { content: "📝"; }
+        .fa-xmark::before { content: "✕"; font-weight: 800; }
+        .fa-trash-can::before { content: "🗑"; }
+        .fa-clipboard-list::before { content: "📋"; }
         h1, h2, h3, p { margin: 0; }
-        button, input, select, textarea { font-family: inherit; font-size: 100%; color: inherit; }
+        button, input, select, textarea { font-family: inherit; font-size: 16px; color: inherit; touch-action: manipulation; }
         button { cursor: pointer; background-color: transparent; border: 0; }
         select, input[type="text"], input[type="number"], input[type="date"], textarea {
             -webkit-appearance: none;
@@ -1190,90 +1203,7 @@
             });
             const rankData = list.map(r => parseInt(r.rank || 1));
 
-            if (typeof window.Chart === 'undefined' || !canvas) {
-                renderFallbackSvgChart(labels, chartType === 'balance' ? cumData : rankData, chartType === 'rank');
-                return;
-            }
-
-            if (svgBox) svgBox.classList.add('hidden');
-            canvas.style.display = 'block';
-
-            try {
-                const ctx = canvas.getContext('2d');
-                if (balanceChart) {
-                    balanceChart.destroy();
-                }
-
-                if (chartType === 'balance') {
-                    balanceChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: '累計収支 (pt)',
-                                data: cumData,
-                                borderColor: '#d97706',
-                                backgroundColor: '#d97706',
-                                fill: false,
-                                tension: 0.1,
-                                borderWidth: 3,
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                pointBackgroundColor: '#ffffff',
-                                pointBorderColor: '#d97706',
-                                pointBorderWidth: 2.5
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { grid: { color: 'rgba(217, 119, 6, 0.12)' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                } else {
-                    balanceChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: '着順',
-                                data: rankData,
-                                borderColor: '#b45309',
-                                backgroundColor: '#b45309',
-                                fill: false,
-                                tension: 0.1,
-                                borderWidth: 3,
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                pointBackgroundColor: '#ffffff',
-                                pointBorderColor: '#b45309',
-                                pointBorderWidth: 2.5
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: {
-                                    reverse: true,
-                                    min: 1,
-                                    max: mahjongMode,
-                                    ticks: { stepSize: 1, callback: v => `${v}位` },
-                                    grid: { color: 'rgba(217, 119, 6, 0.1)' }
-                                },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                }
-            } catch (e) {
-                renderFallbackSvgChart(labels, chartType === 'balance' ? cumData : rankData, chartType === 'rank');
-            }
+            renderFallbackSvgChart(labels, chartType === 'balance' ? cumData : rankData, chartType === 'rank');
         }
 
         // --- 局別ドラ・本場・局名動的生成 ---
