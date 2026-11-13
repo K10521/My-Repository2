@@ -352,22 +352,22 @@
             <div class="flex flex-wrap items-center gap-2">
                 <!-- プラットフォーム切替 -->
                 <div class="bg-amber-100/80 p-1 rounded-2xl border border-amber-200 flex items-center gap-1">
-                    <button id="btnModeMajsoul" onclick="setPlatformMode('majsoul')" class="px-3.5 py-2 rounded-xl text-xs font-extrabold transition bg-amber-600 text-white shadow-xs">
+                    <button type="button" id="btnModeMajsoul" class="px-3.5 py-2 rounded-xl text-xs font-extrabold transition bg-amber-600 text-white shadow-xs">
                         <i class="fa-solid fa-crown mr-1"></i>雀魂
                     </button>
-                    <button id="btnModeReal" onclick="setPlatformMode('real')" class="px-3.5 py-2 rounded-xl text-xs font-extrabold transition text-amber-900 hover:bg-amber-100">
+                    <button type="button" id="btnModeReal" class="px-3.5 py-2 rounded-xl text-xs font-extrabold transition text-amber-900 hover:bg-amber-100">
                         <i class="fa-solid fa-coins mr-1"></i>フリー/セット
                     </button>
                 </div>
 
                 <!-- 4麻/3麻切替 -->
                 <div class="bg-amber-100/80 p-1 rounded-xl border border-amber-200 flex items-center gap-1">
-                    <button id="btnMode4P" onclick="setMahjongMode(4)" class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-amber-600 text-white shadow-xs">四麻</button>
-                    <button id="btnMode3P" onclick="setMahjongMode(3)" class="px-3 py-1.5 rounded-lg text-xs font-extrabold text-amber-900 hover:bg-amber-100">三麻</button>
+                    <button type="button" id="btnMode4P" class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-amber-600 text-white shadow-xs">四麻</button>
+                    <button type="button" id="btnMode3P" class="px-3 py-1.5 rounded-lg text-xs font-extrabold text-amber-900 hover:bg-amber-100">三麻</button>
                 </div>
 
                 <!-- 記録追加ボタン -->
-                <button id="btnOpenRecordModal" type="button" onclick="openRecordModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 transition">
+                <button id="btnOpenRecordModal" type="button" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-plus"></i> 対局を記録
                 </button>
             </div>
@@ -378,11 +378,11 @@
         <!-- 期間フィルター -->
         <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                <button data-period="all" onclick="setPeriodFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-600 text-white shadow-xs whitespace-nowrap">全期間</button>
-                <button data-period="year" onclick="setPeriodFilter('year')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">今年</button>
-                <button data-period="month" onclick="setPeriodFilter('month')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">今月</button>
-                <button data-period="week" onclick="setPeriodFilter('week')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">直近7日</button>
-                <button data-period="today" onclick="setPeriodFilter('today')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">今日</button>
+                <button type="button" data-period="all" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-600 text-white shadow-xs whitespace-nowrap">全期間</button>
+                <button type="button" data-period="year" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">今年</button>
+                <button type="button" data-period="month" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">今月</button>
+                <button type="button" data-period="week" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">直近7日</button>
+                <button type="button" data-period="today" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-amber-900 border border-amber-200 hover:bg-amber-50 whitespace-nowrap">今日</button>
             </div>
             <span class="text-[11px] font-bold text-amber-800/80"><i class="fa-solid fa-circle-info mr-1"></i>履歴の行をタップすると詳細レポートを表示</span>
         </div>
@@ -399,7 +399,7 @@
                         <p class="text-[11px] text-amber-700 font-medium">公式段位配分・東風/半荘別4位減点完全対応</p>
                     </div>
                 </div>
-                <button onclick="openRankHistoryModal()" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-extrabold flex items-center gap-1">
+                <button type="button" id="btnOpenRankHistoryModal" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-extrabold flex items-center gap-1">
                     <i class="fa-solid fa-flag-checkered text-amber-600"></i> 段位履歴を追加
                 </button>
             </div>
@@ -1522,6 +1522,27 @@
         }
 
         function bindAllAppEvents() {
+            const onTap = (id, fn) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('click', fn);
+            };
+
+            onTap('btnModeMajsoul', () => setPlatformMode('majsoul'));
+            onTap('btnModeReal', () => setPlatformMode('real'));
+            onTap('btnMode4P', () => setMahjongMode(4));
+            onTap('btnMode3P', () => setMahjongMode(3));
+            onTap('btnOpenRecordModal', () => openRecordModal());
+            onTap('btnCloseRecordModal', () => closeRecordModal());
+            onTap('btnOpenRankHistoryModal', () => openRankHistoryModal());
+            onTap('btnChartBalance', () => setChartType('balance'));
+            onTap('btnChartRank', () => setChartType('rank'));
+
+            document.querySelectorAll('[data-period]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setPeriodFilter(btn.getAttribute('data-period'));
+                });
+            });
+
             const simRank = document.getElementById('simCurrentRank');
             const simPt = document.getElementById('simCurrentPt');
             const simRoom = document.getElementById('simRoomType');
