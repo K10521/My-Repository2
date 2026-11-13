@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="麻雀分析">
+    <link id="appleTouchIcon" rel="apple-touch-icon" sizes="180x180" href="">
+    <link id="appFavicon" rel="icon" type="image/png" href="">
     <title>麻雀詳細アナリティクス＆雀魂昇段アシスタント</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -1495,6 +1499,72 @@
 
         // 初期化処理 (Safari・外部WebViewでも確実に発火させる)
         let isAppInitialized = false;
+
+        // ホーム画面用の高精細アプリアイコン(180x180 PNG)を動的生成して登録
+        function generateAppIcon() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 180;
+                canvas.height = 180;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                // 背景：高級感のあるアンバー〜深紅ゴールドのグラデーション
+                const bgGrad = ctx.createLinearGradient(0, 0, 180, 180);
+                bgGrad.addColorStop(0, '#f59e0b');
+                bgGrad.addColorStop(0.55, '#b45309');
+                bgGrad.addColorStop(1, '#78350f');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, 180, 180);
+
+                // 中央の麻雀牌（白磁＋金枠）
+                const tileX = 36, tileY = 22, tileW = 108, tileH = 136, r = 20;
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+                ctx.shadowBlur = 14;
+                ctx.shadowOffsetY = 6;
+
+                ctx.beginPath();
+                ctx.moveTo(tileX + r, tileY);
+                ctx.arcTo(tileX + tileW, tileY, tileX + tileW, tileY + tileH, r);
+                ctx.arcTo(tileX + tileW, tileY + tileH, tileX, tileY + tileH, r);
+                ctx.arcTo(tileX, tileY + tileH, tileX, tileY, r);
+                ctx.arcTo(tileX, tileY, tileX + tileW, tileY, r);
+                ctx.closePath();
+
+                const tileGrad = ctx.createLinearGradient(tileX, tileY, tileX + tileW, tileY + tileH);
+                tileGrad.addColorStop(0, '#ffffff');
+                tileGrad.addColorStop(1, '#fef3c7');
+                ctx.fillStyle = tileGrad;
+                ctx.fill();
+                ctx.restore();
+
+                // 牌の内側ゴールドフレーム
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(tileX + 9, tileY + 9, tileW - 18, tileH - 18);
+
+                // 「發」または「中」の力強い文字（紅色の「中」＋昇段王冠マーク）
+                ctx.fillStyle = '#dc2626';
+                ctx.font = '900 72px "Hiragino Mincho ProN", "Yu Mincho", serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('中', 90, 96);
+
+                // 右下に小さな黄金の冠バッジ
+                ctx.font = '28px sans-serif';
+                ctx.fillText('👑', 132, 138);
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const touchIcon = document.getElementById('appleTouchIcon');
+                const favIcon = document.getElementById('appFavicon');
+                if (touchIcon) touchIcon.href = dataUrl;
+                if (favIcon) favIcon.href = dataUrl;
+            } catch (e) {
+                console.error('Icon generation skipped:', e);
+            }
+        }
+
         function loadSimulatorSettings() {
             const saved = loadJsonStorage('mj_analytics_sim_settings', null);
             if (!saved) return;
@@ -1593,6 +1663,7 @@
         function initApp() {
             if (isAppInitialized) return;
             isAppInitialized = true;
+            try { generateAppIcon(); } catch (e) { console.error(e); }
             try { loadSimulatorSettings(); } catch (e) { console.error(e); }
             try { bindAllAppEvents(); } catch (e) { console.error(e); }
             try { updateMajsoulSimulation(); } catch (e) { console.error(e); }
